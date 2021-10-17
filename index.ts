@@ -90,15 +90,13 @@ export class Client {
 
         const ws = RTCStream.from(new WebSocket(this._serverUrl));
         ws.once("close", () => {
-            if (this._currentHostSession === hostSession) {
-                for (const session of this._sessions.values()) {
-                    session._destroy(SessionDetachReason.ConnectionTerminated, null);
-                }
-
-                this._hostSessionRequest = null;
-                this._currentHostSession = null;
-                this._currentBus = null;
+            for (const session of this._sessions.values()) {
+                session._destroy(SessionDetachReason.ConnectionTerminated, null);
             }
+
+            this._hostSessionRequest = null;
+            this._currentHostSession = null;
+            this._currentBus = null;
         });
 
         const bus = dbus.peerBus(ws, {
