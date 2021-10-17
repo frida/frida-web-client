@@ -1,6 +1,6 @@
 {
     "name": "@frida/web-client",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Communicate with a remote Frida server implementation",
     "type": "module",
     "main": "./dist/index.js",
