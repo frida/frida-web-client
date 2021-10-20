@@ -13,6 +13,7 @@
         "outDir": "./dist"
     },
     "include": [
-        "./index.ts"
+        "./index.ts",
+        "./lib/**/*.ts"
     ]
 }
