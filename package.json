@@ -31,7 +31,6 @@
     },
     "dependencies": {
         "@frida/dbus": "^1.0.4",
-        "@frida/rtc-stream": "^1.0.0",
-        "typed-emitter": "^1.4.0"
+        "@frida/rtc-stream": "^1.0.0"
     }
 }
