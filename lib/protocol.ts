@@ -10,6 +10,12 @@ export interface AgentSession extends dbus.ClientInterface {
     destroyScript(scriptId: AgentScriptId): Promise<void>;
     loadScript(scriptId: AgentScriptId): Promise<void>;
     postMessages(messages: AgentMessageRecord[], batchId: number): Promise<void>;
+
+    offerPeerConnection(offerSdp: string, options: VariantDict): Promise<string>;
+    addCandidates(candidateSdps: string[]): Promise<void>;
+    notifyCandidateGatheringDone(): Promise<void>;
+    beginMigration(): Promise<void>;
+    commitMigration(): Promise<void>;
 }
 
 export type HostProcessInfo = [pid: number, name: string, parameters: VariantDict];
