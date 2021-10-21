@@ -18,10 +18,10 @@ export class Script {
     destroyed: Signal<ScriptDestroyedHandler>;
     message: Signal<ScriptMessageHandler>;
 
-    private _id: AgentScriptId;
-    private _agentSession: AgentSession;
+    private readonly _id: AgentScriptId;
+    private readonly _agentSession: AgentSession;
     private _state: "created" | "destroyed" = "created";
-    private _exportsProxy: ScriptExports;
+    private readonly _exportsProxy: ScriptExports;
     private _logHandlerImpl: ScriptLogHandler = log;
 
     constructor(id: AgentScriptId, agentSession: AgentSession) {

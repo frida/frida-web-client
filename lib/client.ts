@@ -16,12 +16,12 @@ import * as dbus from "@frida/dbus";
 import RTCStream from "@frida/rtc-stream";
 
 export class Client {
-    private _serverUrl: string;
+    private readonly _serverUrl: string;
 
     private _hostSessionRequest: Promise<HostSession> | null = null;
     private _currentBus: dbus.MessageBus | null = null;
 
-    private _sessions = new Map<string, Session>();
+    private readonly _sessions = new Map<string, Session>();
 
     constructor(host: string, options: ClientOptions = {}) {
         let scheme;

@@ -16,7 +16,8 @@ export class Session {
     detached: Signal<SessionDetachedHandler>;
 
     private _handle: AgentSession;
-    private _scripts = new Map<number, Script>();
+    private readonly _scripts = new Map<number, Script>();
+    private readonly _sink;
 
     constructor(handle: AgentSession, id: AgentSessionId, bus: dbus.MessageBus) {
         this._handle = handle;
