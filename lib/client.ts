@@ -28,7 +28,7 @@ export class Client {
         const { tls = "auto" } = options;
         switch (tls) {
             case "auto":
-                scheme = (typeof location !== "undefined" && location.protocol === ":https") ? "wss" : "ws";
+                scheme = (typeof location !== "undefined" && location.protocol === "https:") ? "wss" : "ws";
                 break;
             case "enabled":
                 scheme = "wss";
