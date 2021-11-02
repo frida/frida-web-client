@@ -55,14 +55,31 @@ export class Session {
         return script;
     }
 
-    async setupPeerConnection(): Promise<void> {
-        // TODO: Wire up options (STUN, TURN, etc.)
+    async setupPeerConnection(options: PeerOptions = {}): Promise<void> {
+        const { stunServer, relays } = options;
+        const iceServers: RTCIceServer[] = [];
+        const rawOptions: VariantDict = {};
+        if (stunServer !== undefined) {
+            iceServers.push({ urls: "stun:" + stunServer });
+            rawOptions["stun-server"] = new dbus.Variant("s", stunServer);
+        }
+        if (relays !== undefined) {
+            iceServers.push(...relays.map(({ address, username, password, kind }) => {
+                return {
+                    urls: makeTurnUrl(address, kind),
+                    username,
+                    credential: password
+                };
+            }));
+            rawOptions["relays"] = new dbus.Variant("a(sssu)",
+                relays.map(({ address, username, password, kind }) => [address, username, password, kind]));
+        }
 
         const agentSession = this._handle;
 
         await agentSession.beginMigration();
 
-        const peerConnection = new RTCPeerConnection();
+        const peerConnection = new RTCPeerConnection({ iceServers });
 
         const pendingLocalCandidates = new IceCandidateQueue();
         pendingLocalCandidates.on("add", (candidates: RTCIceCandidate[]) => {
@@ -142,7 +159,7 @@ export class Session {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        const answerSdp = await agentSession.offerPeerConnection(offer.sdp!, {});
+        const answerSdp = await agentSession.offerPeerConnection(offer.sdp!, rawOptions);
         const answer = new RTCSessionDescription({ type: "answer", sdp: answerSdp });
         await peerConnection.setRemoteDescription(answer);
 
@@ -184,6 +201,35 @@ export enum SessionDetachReason {
     ProcessTerminated,
     ConnectionTerminated,
     DeviceLost,
+}
+
+export interface PeerOptions {
+    stunServer?: string;
+    relays?: Relay[];
+}
+
+export interface Relay {
+    address: string;
+    username: string;
+    password: string;
+    kind: RelayKind;
+}
+
+export enum RelayKind {
+    TurnUDP = 0,
+    TurnTCP,
+    TurnTLS,
+}
+
+function makeTurnUrl(address: string, kind: RelayKind): string {
+    switch (kind) {
+        case RelayKind.TurnUDP:
+            return `turn:${address}`;
+        case RelayKind.TurnTCP:
+            return `turn:${address}?transport=tcp`;
+        case RelayKind.TurnTLS:
+            return `turns:${address}`;
+    }
 }
 
 class IceCandidateQueue extends EventEmitter {

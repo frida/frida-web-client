@@ -21,6 +21,10 @@ export const Session = sessionModule.Session;
 export type SessionDetachedHandler = sessionModule.SessionDetachedHandler;
 export type SessionDetachReason = sessionModule.SessionDetachReason;
 export const SessionDetachReason = sessionModule.SessionDetachReason;
+export type PeerOptions = sessionModule.PeerOptions;
+export type Relay = sessionModule.Relay;
+export type RelayKind = sessionModule.RelayKind;
+export const RelayKind = sessionModule.RelayKind;
 
 export type Script = scriptModule.Script;
 export const Script = scriptModule.Script;
