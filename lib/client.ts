@@ -1,6 +1,7 @@
 import { Crash } from "./crash";
 import { Process } from "./process";
 import {
+    HostConnection,
     HostSession,
     CrashInfo,
     AgentSession,
@@ -18,8 +19,7 @@ import RTCStream from "@frida/rtc-stream";
 export class Client {
     private readonly _serverUrl: string;
 
-    private _hostSessionRequest: Promise<HostSession> | null = null;
-    private _currentBus: dbus.MessageBus | null = null;
+    private _hostConnectionRequest: Promise<HostConnection> | null = null;
 
     private readonly _sessions = new Map<string, Session>();
 
@@ -41,7 +41,7 @@ export class Client {
     }
 
     async enumerateProcesses(options: ProcessQueryOptions = {}): Promise<Process[]> {
-        const hostSession = await this.getHostSession();
+        const connection = await this._getHostConnection();
 
         const rawOptions: VariantDict = {};
         const { pids, scope } = options;
@@ -52,7 +52,7 @@ export class Client {
             rawOptions.scope = new dbus.Variant("s", scope);
         }
 
-        const rawProcesses = await hostSession.enumerateProcesses(rawOptions);
+        const rawProcesses = await connection.session.enumerateProcesses(rawOptions);
 
         return rawProcesses.map(([pid, name, parameters]) => {
             return { pid, name, parameters };
@@ -60,8 +60,7 @@ export class Client {
     }
 
     async attach(pid: number, options: SessionOptions = {}): Promise<Session> {
-        const hostSession = await this.getHostSession();
-        const bus = this._currentBus!;
+        const connection = await this._getHostConnection();
 
         const rawOptions: VariantDict = {};
         const { realm, persistTimeout } = options;
@@ -72,35 +71,34 @@ export class Client {
             rawOptions["persist-timeout"] = new dbus.Variant("u", persistTimeout);
         }
 
-        const sessionId = await hostSession.attach(pid, rawOptions);
+        const sessionId = await connection.session.attach(pid, rawOptions);
 
-        const agentSessionObj = await bus.getProxyObject("re.frida.AgentSession15", "/re/frida/AgentSession/" + sessionId[0])
-        const agentSession = agentSessionObj.getInterface("re.frida.AgentSession15") as AgentSession;
+        const agentSession = await this._linkAgentSession(sessionId, connection);
 
-        const session = new Session(agentSession, sessionId, bus);
-        this._sessions.set(sessionId[0], session);
+        const session = new Session(this, agentSession, pid, sessionId[0], persistTimeout ?? 0, connection);
+        this._sessions.set(session.id, session);
+        session._events.once("destroyed", () => {
+            this._sessions.delete(session.id);
+        });
 
         return session;
     }
 
-    private async getHostSession(): Promise<HostSession> {
-        if (this._hostSessionRequest === null) {
-            this._hostSessionRequest = this._getHostSession();
+    async _getHostConnection(): Promise<HostConnection> {
+        if (this._hostConnectionRequest === null) {
+            this._hostConnectionRequest = this._doGetHostConnection();
         }
-        return this._hostSessionRequest;
+        return this._hostConnectionRequest;
     }
 
-    private async _getHostSession(): Promise<HostSession> {
-        let hostSession: HostSession | null = null;
-
+    private async _doGetHostConnection(): Promise<HostConnection> {
         const ws = RTCStream.from(new WebSocket(this._serverUrl));
         ws.once("close", () => {
-            for (const session of this._sessions.values()) {
-                session._destroy(SessionDetachReason.ConnectionTerminated, null);
-            }
+            this._hostConnectionRequest = null;
 
-            this._hostSessionRequest = null;
-            this._currentBus = null;
+            for (const session of this._sessions.values()) {
+                session._onDetached(SessionDetachReason.ConnectionTerminated, null);
+            }
         });
 
         const bus = dbus.peerBus(ws, {
@@ -110,14 +108,17 @@ export class Client {
             // Ignore
         });
 
-        const hostSessionObj = await bus.getProxyObject("re.frida.HostSession15", "/re/frida/HostSession");
-        hostSession = hostSessionObj.getInterface("re.frida.HostSession15") as HostSession;
+        const sessionObj = await bus.getProxyObject("re.frida.HostSession15", "/re/frida/HostSession");
+        const session = sessionObj.getInterface("re.frida.HostSession15") as HostSession;
 
-        this._currentBus = bus;
+        session.on("agentSessionDetached", this._onAgentSessionDetached);
 
-        hostSession.on("agentSessionDetached", this._onAgentSessionDetached);
+        return { bus, session };
+    }
 
-        return hostSession;
+    async _linkAgentSession(id: AgentSessionId, connection: HostConnection): Promise<AgentSession> {
+        const agentSessionObj = await connection.bus.getProxyObject("re.frida.AgentSession15", "/re/frida/AgentSession/" + id[0]);
+        return agentSessionObj.getInterface("re.frida.AgentSession15") as AgentSession;
     }
 
     private _onAgentSessionDetached = (id: AgentSessionId, reason: SessionDetachReason, rawCrash: CrashInfo): void => {
@@ -131,7 +132,7 @@ export class Client {
             ? { pid, processName, summary, report, parameters }
             : null;
 
-        session._destroy(reason, crash);
+        session._onDetached(reason, crash);
     };
 }
 

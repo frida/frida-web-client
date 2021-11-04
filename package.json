@@ -30,7 +30,7 @@
         "typescript": "^4.4.4"
     },
     "dependencies": {
-        "@frida/dbus": "^1.0.4",
+        "@frida/dbus": "^1.1.1",
         "@frida/rtc-stream": "^1.0.2"
     }
 }

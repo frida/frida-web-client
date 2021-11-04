@@ -1,21 +1,31 @@
 import * as dbus from "@frida/dbus";
 
+export interface HostConnection {
+    bus: dbus.MessageBus;
+    session: HostSession;
+}
+
 export interface HostSession extends dbus.ClientInterface {
-    enumerateProcesses(options: VariantDict): Promise<HostProcessInfo[]>;
-    attach(pid: number, options: VariantDict): Promise<AgentSessionId>;
+    enumerateProcesses: dbus.ProxyMethod<(options: VariantDict) => Promise<HostProcessInfo[]>>;
+    attach: dbus.ProxyMethod<(pid: number, options: VariantDict) => Promise<AgentSessionId>>;
+    reattach: dbus.ProxyMethod<(id: AgentSessionId) => Promise<void>>;
 }
 
 export interface AgentSession extends dbus.ClientInterface {
-    createScript(source: string, options: VariantDict): Promise<AgentScriptId>;
-    destroyScript(scriptId: AgentScriptId): Promise<void>;
-    loadScript(scriptId: AgentScriptId): Promise<void>;
-    postMessages(messages: AgentMessageRecord[], batchId: number): Promise<void>;
+    close: dbus.ProxyMethod<() => Promise<void>>;
 
-    offerPeerConnection(offerSdp: string, options: VariantDict): Promise<string>;
-    addCandidates(candidateSdps: string[]): Promise<void>;
-    notifyCandidateGatheringDone(): Promise<void>;
-    beginMigration(): Promise<void>;
-    commitMigration(): Promise<void>;
+    resume: dbus.ProxyMethod<(rxBatchId: number) => Promise<number>>;
+
+    createScript: dbus.ProxyMethod<(source: string, options: VariantDict) => Promise<AgentScriptId>>;
+    destroyScript: dbus.ProxyMethod<(scriptId: AgentScriptId) => Promise<void>>;
+    loadScript: dbus.ProxyMethod<(scriptId: AgentScriptId) => Promise<void>>;
+    postMessages: dbus.ProxyMethod<(messages: AgentMessageRecord[], batchId: number) => Promise<void>>;
+
+    offerPeerConnection: dbus.ProxyMethod<(offerSdp: string, options: VariantDict) => Promise<string>>;
+    addCandidates: dbus.ProxyMethod<(candidateSdps: string[]) => Promise<void>>;
+    notifyCandidateGatheringDone: dbus.ProxyMethod<() => Promise<void>>;
+    beginMigration: dbus.ProxyMethod<() => Promise<void>>;
+    commitMigration: dbus.ProxyMethod<() => Promise<void>>;
 }
 
 export type HostProcessInfo = [pid: number, name: string, parameters: VariantDict];

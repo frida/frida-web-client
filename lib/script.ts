@@ -18,17 +18,19 @@ export class Script {
     destroyed: Signal<ScriptDestroyedHandler>;
     message: Signal<ScriptMessageHandler>;
 
+    _events = new EventEmitter();
+
     private readonly _id: AgentScriptId;
-    private readonly _agentSession: AgentSession;
     private _state: "created" | "destroyed" = "created";
     private readonly _exportsProxy: ScriptExports;
     private _logHandlerImpl: ScriptLogHandler = log;
 
-    constructor(id: AgentScriptId, agentSession: AgentSession) {
+    constructor(
+            private _controller: ScriptController,
+            id: AgentScriptId) {
         this._id = id;
-        this._agentSession = agentSession;
 
-        const services = new ScriptServices(this, agentSession);
+        const services = new ScriptServices(this, this._events);
 
         const rpcController: RpcController = services;
         this._exportsProxy = makeScriptExportsProxy(rpcController);
@@ -59,25 +61,25 @@ export class Script {
     }
 
     load(): Promise<void> {
-        return this._agentSession.loadScript(this._id);
+        return this._controller._activeSession.loadScript(this._id);
     }
 
     async unload(): Promise<void> {
-        await this._agentSession.destroyScript(this._id);
+        await this._controller._activeSession.destroyScript(this._id);
 
         this._destroy();
     }
 
     post(message: any, data: Buffer | null = null): void {
         const hasData = data !== null;
-        const rawMessage: AgentMessageRecord = [
+        const record: AgentMessageRecord = [
             AgentMessageKind.Script,
             this._id,
             JSON.stringify(message),
             hasData,
-            []
+            hasData ? data.toJSON().data : []
         ];
-        this._agentSession.postMessages([rawMessage], 0).catch(noop);
+        this._controller._postToAgent(record);
     }
 
     _destroy() {
@@ -86,11 +88,11 @@ export class Script {
         }
 
         this._state = "destroyed";
-        this._agentSession.emit("destroyed");
+        this._events.emit("destroyed");
     }
 
     _dispatchMessage(message: Message, data: Buffer | null): void {
-        this._agentSession.emit("message", message, data);
+        this._events.emit("message", message, data);
     }
 }
 
@@ -145,6 +147,11 @@ export enum LogLevel {
     Info = "info",
     Warning = "warning",
     Error = "error"
+}
+
+export interface ScriptController {
+    _activeSession: AgentSession;
+    _postToAgent(record: AgentMessageRecord): void;
 }
 
 class ScriptServices extends SignalAdapter implements RpcController {
@@ -346,7 +353,4 @@ const reservedMethodNames = new Set<string>([
 
 function isReservedMethodName(name: string | number | symbol): boolean {
     return reservedMethodNames.has(name.toString());
-}
-
-function noop() {
 }
