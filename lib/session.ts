@@ -158,7 +158,16 @@ export class Session {
 
         const pendingLocalCandidates = new IceCandidateQueue();
         pendingLocalCandidates.on("add", (candidates: RTCIceCandidate[]) => {
-            serverSession.addCandidates(candidates.map(c => "a=" + c.candidate));
+            const candidateSdps = candidates
+                .filter(({ candidate }) => {
+                    const tokens = candidate.split(" ");
+                    const address = tokens[4];
+                    return !address.endsWith(".local");
+                })
+                .map(c => "a=" + c.candidate);
+            if (candidateSdps.length > 0) {
+                serverSession.addCandidates(candidateSdps);
+            }
         });
         pendingLocalCandidates.once("done", () => {
             serverSession.notifyCandidateGatheringDone();
