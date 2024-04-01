@@ -40,7 +40,7 @@ export class AgentMessageSink extends dbus.interface.Interface {
     #handler: AgentMessageHandler;
 
     constructor(handler: AgentMessageHandler) {
-        super("re.frida.AgentMessageSink15");
+        super("re.frida.AgentMessageSink16");
 
         this.#handler = handler;
     }

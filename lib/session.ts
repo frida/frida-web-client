@@ -219,8 +219,8 @@ export class Session {
                     authMethods: [],
                 });
 
-                const peerAgentSessionObj = await peerBus.getProxyObject("re.frida.AgentSession15", "/re/frida/AgentSession");
-                peerAgentSession = peerAgentSessionObj.getInterface("re.frida.AgentSession15") as AgentSession;
+                const peerAgentSessionObj = await peerBus.getProxyObject("re.frida.AgentSession16", "/re/frida/AgentSession");
+                peerAgentSession = peerAgentSessionObj.getInterface("re.frida.AgentSession16") as AgentSession;
 
                 peerBus.export("/re/frida/AgentMessageSink", this._sink);
 

@@ -108,8 +108,8 @@ export class Client {
             // Ignore
         });
 
-        const sessionObj = await bus.getProxyObject("re.frida.HostSession15", "/re/frida/HostSession");
-        const session = sessionObj.getInterface("re.frida.HostSession15") as HostSession;
+        const sessionObj = await bus.getProxyObject("re.frida.HostSession16", "/re/frida/HostSession");
+        const session = sessionObj.getInterface("re.frida.HostSession16") as HostSession;
 
         session.on("agentSessionDetached", this._onAgentSessionDetached);
 
@@ -117,8 +117,8 @@ export class Client {
     }
 
     async _linkAgentSession(id: AgentSessionId, connection: HostConnection): Promise<AgentSession> {
-        const agentSessionObj = await connection.bus.getProxyObject("re.frida.AgentSession15", "/re/frida/AgentSession/" + id[0]);
-        return agentSessionObj.getInterface("re.frida.AgentSession15") as AgentSession;
+        const agentSessionObj = await connection.bus.getProxyObject("re.frida.AgentSession16", "/re/frida/AgentSession/" + id[0]);
+        return agentSessionObj.getInterface("re.frida.AgentSession16") as AgentSession;
     }
 
     private _onAgentSessionDetached = (id: AgentSessionId, reason: SessionDetachReason, rawCrash: CrashInfo): void => {
