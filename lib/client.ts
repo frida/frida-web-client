@@ -18,6 +18,7 @@ import RTCStream from "@frida/rtc-stream";
 
 export class Client {
     private readonly _serverUrl: string;
+    private readonly _token: string | null = null;
 
     private _hostConnectionRequest: Promise<HostConnection> | null = null;
 
@@ -38,6 +39,10 @@ export class Client {
                 break;
         }
         this._serverUrl = `${scheme}://${host}/ws`;
+
+        if (options.token !== undefined) {
+            this._token = options.token;
+        }
     }
 
     async enumerateProcesses(options: ProcessQueryOptions = {}): Promise<Process[]> {
@@ -108,6 +113,12 @@ export class Client {
             // Ignore
         });
 
+        if (this._token !== null) {
+            const authServiceObj = await bus.getProxyObject("re.frida.AuthenticationService16", "/re/frida/AuthenticationService");
+            const authService = authServiceObj.getInterface("re.frida.AuthenticationService16");
+            await authService.authenticate(this._token);
+        }
+
         const sessionObj = await bus.getProxyObject("re.frida.HostSession16", "/re/frida/HostSession");
         const session = sessionObj.getInterface("re.frida.HostSession16") as HostSession;
 
@@ -138,6 +149,7 @@ export class Client {
 
 export interface ClientOptions {
     tls?: TransportLayerSecurity;
+    token?: string;
 }
 
 export enum TransportLayerSecurity {
